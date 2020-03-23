@@ -151,6 +151,20 @@ func makeDHT(ctx context.Context, h host.Host, cfg *opts.Options) *IpfsDHT {
 	rt := kb.NewRoutingTable(cfg.BucketSize, self, cfg.RoutingTable.LatencyTolerance, h.Peerstore())
 	cmgr := h.ConnManager()
 
+	ticker := time.NewTicker(10 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				fmt.Printf("%v\n", time.Now())
+				rt.Print()
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	rt.PeerAdded = func(p peer.ID) {
 		commonPrefixLen := kb.CommonPrefixLen(self, kb.ConvertPeerID(p))
 		cmgr.TagPeer(p, "kbucket", BaseConnMgrScore+commonPrefixLen)
